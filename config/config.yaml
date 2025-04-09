@@ -1,0 +1,14 @@
+HTTP_SERVER:
+  ADDRESS: "localhost:8080"
+  TIMEOUT: 4s #время на чтение запроса такое же на отправку ответа
+  IDLE_TIMEOUT: 60s #время на соединение с пользователем
+
+POSTGRES:
+  POSTGRES_HOST: postgres
+  POSTGRES_USER: root
+  POSTGRES_PASSWORD: 1234
+  POSTGRES_DB: postgres
+  POSTGRES_PORT: 5432
+
+  POSTGRES_MAX_CONN: 10
+  POSTGRES_MIN_CON: 5
