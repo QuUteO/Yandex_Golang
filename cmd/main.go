@@ -24,12 +24,13 @@ func main() {
 	}
 
 	//todo: init storage: Postges +
-	_, err = postgres.New(ctx, cfg.Postgres)
+	pool, err := postgres.New(ctx, cfg.Postgres)
 	if err != nil {
 		logger.GetLoggerFromCtx(ctx).Info(ctx, "Ошибка подключения к БД")
 	} else {
 		log.Println("Успешно завелся постгрес")
 	}
+	defer pool.Close()
 	// todo: init router: chi
 
 	// todo: run server

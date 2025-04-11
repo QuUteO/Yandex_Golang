@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: init_postgres_container
+    image: postgres:15-alpine  # Лучше использовать конкретную версию
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: users  # Добавьте явное указание базы данных
+      PGDATA: /var/lib/postgresql/data/pgdata  # Стандартный путь в контейнере
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Стандартный volume
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:  # Добавьте healthcheck для мониторинга
+      test: ["CMD-SHELL", "pg_isready -U root -d mydatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:  # Переименовано для ясности
