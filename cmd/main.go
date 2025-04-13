@@ -9,9 +9,9 @@ import (
 	"log"
 	"net/http"
 	"net/smtp"
+	"project/pkg/api/config"
 	"project/pkg/api/logger"
 	"project/pkg/api/postgres"
-	"project/pkg/config"
 )
 
 func main() {
