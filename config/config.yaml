@@ -12,3 +12,9 @@ POSTGRES:
 
   POSTGRES_MAX_CONN: 10
   POSTGRES_MIN_CON: 5
+
+NOTIFICATION:
+  SMTPHOST: "smtp.gmail.com"
+  SMTPPORT: "587"
+  EMAIL: "quuteo86@gmail.com"
+  PASSWORD: "sfmb oqfl uojk nwfw"

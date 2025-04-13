@@ -8,14 +8,12 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log"
-	"project/pkg/config"
 )
 
-type user struct {
-	Id    string `yaml:"ID" env:"ID" env-default:"admin"`
-	Name  string `yaml:"Name" env:"NAME" env-default:"admin"`
-	Email string `yaml:"Email" env-default:"quuteo86@gmail.com"`
+type User struct {
+	Id    int    `yaml:"Id"`
+	Email string `yaml:"Email"`
+	Name  string `yaml:"name"`
 }
 
 type Config struct {
@@ -29,18 +27,19 @@ type Config struct {
 	MinCon int32 `yaml:"MIN_CON" env:"MIN_CON" env-default:"5"`
 }
 
-// подключение к постгресу
+// New подключение к постгресу
 func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 	// создается подключение к постгресу
-	conString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s&pool_max_conns=%d&pool_min_conns=%d",
-		config.Username,
-		config.Password,
-		config.Host,
-		config.Port,
-		config.Database,
-		config.MaxCon,
-		config.MinCon,
-	)
+	//conString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s&pool_max_conns=%d&pool_min_conns=%d",
+	//	config.Username,
+	//	config.Password,
+	//	config.Host,
+	//	config.Port,
+	//	config.Database,
+	//	config.MaxCon,
+	//	config.MinCon,
+	//)
+	conString := "postgres://root:1234@localhost:5432/postgres?sslmode=disable"
 
 	conn, err := pgxpool.New(ctx, conString)
 
@@ -67,31 +66,4 @@ func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("failed to migrate to database: %w", err)
 	}
 	return conn, nil
-}
-
-// сохранение пользователя
-func SaveUsers(ctx context.Context, pool *pgxpool.Pool, user *config.Users) error {
-	// пишем сохранение users
-	_, err := pool.Exec(ctx,
-		`INSERT INTO users (id, name, email) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = $2, email = $3`,
-		user.Id, user.Name, user.Email,
-	)
-
-	if err != nil {
-		log.Printf("failed to save users: %v", err)
-	}
-	return err
-}
-
-func UpdateUser(ctx context.Context, pool *pgxpool.Pool, user *config.Users) error {
-	// пишем обновление users
-	_, err := pool.Exec(ctx,
-		`UPDATE users SET name = $1, email = $2 WHERE id = $3`,
-		user.Name, user.Email, user.Id,
-	)
-
-	if err != nil {
-		log.Printf("failed to save users: %v", err)
-	}
-	return err
 }

@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Postgres   postgres.Config `yaml:"POSTGRES" env:"POSTGRES"`
-	HTTPServer `yaml:"HTTPSERVER"`
+	Postgres     postgres.Config `yaml:"POSTGRES" env:"POSTGRES"`
+	HTTPServer   `yaml:"HTTPSERVER"`
+	Notification `yaml:"NOTIFICATION"`
 }
 
 type HTTPServer struct {
@@ -17,10 +18,11 @@ type HTTPServer struct {
 	IdleTimeout time.Duration `yaml:"IDLE_TIMEOUT" env-default:"60s"`
 }
 
-type Users struct {
-	Id    string `yaml:"ID" env:"ID" env-default:"admin"`
-	Name  string `yaml:"Name" env:"NAME" env-default:"admin"`
-	Email string `yaml:"Email" env-default:"quuteo86@gmail.com"`
+type Notification struct {
+	Smtphost string `yaml:"SMTP_HOST" env-default:"smtp.gmail.com"`
+	Smtpport string `yaml:"SMTP_PORT" env-default:"587"`
+	Email    string `yaml:"EMAIL" env-default:"test@gmail.com"`
+	Password string `yaml:"PASSWORD" env-default:"test"`
 }
 
 func New() (*Config, error) {
