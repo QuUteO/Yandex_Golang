@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
-	"log"
-	"project/internal/config"
 	"project/pkg/api/logger"
 	"project/pkg/api/postgres"
+	"project/pkg/config"
 )
 
 func main() {
@@ -19,19 +20,20 @@ func main() {
 	cfg, err := config.New()
 	if err != nil {
 		logger.GetLoggerFromCtx(ctx).Info(ctx, "Чтение конфигураций", zap.Error(err))
-	} else {
-		log.Println("Все успешно завелось конфиг")
 	}
 
-	//todo: init storage: Postges +
-	pool, err := postgres.New(ctx, cfg.Postgres)
+	//todo: init storage: Postges и migrations +
+	_, err = postgres.New(ctx, cfg.Postgres)
 	if err != nil {
-		logger.GetLoggerFromCtx(ctx).Info(ctx, "Ошибка подключения к БД")
-	} else {
-		log.Println("Успешно завелся постгрес")
+		logger.GetLoggerFromCtx(ctx).Info(ctx, "Ошибка подключения к БД", zap.Error(err))
 	}
-	defer pool.Close()
 	// todo: init router: chi
+	router := chi.NewRouter()
 
+	//middleware
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
 	// todo: run server
 }

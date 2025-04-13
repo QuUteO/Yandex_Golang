@@ -3,15 +3,16 @@ module project
 go 1.24
 
 require (
+	github.com/go-chi/chi/v5 v5.2.1
+	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgx/v5 v5.7.4
 	go.uber.org/zap v1.27.0
+	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
 )
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
-	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
-	github.com/golang-migrate/migrate/v4 v4.18.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
