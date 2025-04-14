@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -48,8 +49,8 @@ func main() {
 func SaveUsers(ctx context.Context, pool *pgxpool.Pool, user postgres.User) error {
 	// пишем сохранение users
 	_, err := pool.Exec(ctx,
-		`INSERT INTO users (id, name, email) VALUES ($1, $2, $3) ON CONFLICT (id) DO UPDATE SET name = $2, email = $3`,
-		user.Id, user.Name, user.Email,
+		`INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
+		user.Name, user.Email,
 	)
 
 	if err != nil {
@@ -61,8 +62,8 @@ func SaveUsers(ctx context.Context, pool *pgxpool.Pool, user postgres.User) erro
 // UpdateUser пишем обновление users
 func UpdateUser(ctx context.Context, pool *pgxpool.Pool, user postgres.User) error {
 	_, err := pool.Exec(ctx,
-		`UPDATE users SET name = $1, email = $2 WHERE id = $3`,
-		user.Name, user.Email, user.Id,
+		`UPDATE users SET name = $1, email = $2`,
+		user.Name, user.Email,
 	)
 
 	if err != nil {
@@ -73,7 +74,6 @@ func UpdateUser(ctx context.Context, pool *pgxpool.Pool, user postgres.User) err
 
 func SaveUserHandler(cfg *config.Config, pool *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Проверка метода запроса
 		var user postgres.User
 		// Декодируем тело запроса
 		err := json.NewDecoder(r.Body).Decode(&user)
@@ -100,7 +100,7 @@ func SaveUserHandler(cfg *config.Config, pool *pgxpool.Pool) http.HandlerFunc {
 
 		// Сообщение
 		subject := "Subject: Привет от Go!\r\n"
-		body := "Это тестовое письмо, отправленное из Go с использованием Gmail App Password.\r\n"
+		body := fmt.Sprintf("Здраствуйте, %s\r\n", user.Name)
 		msg := []byte(subject + "\r\n" + body)
 
 		// Аутентификация
@@ -121,12 +121,6 @@ func SaveUserHandler(cfg *config.Config, pool *pgxpool.Pool) http.HandlerFunc {
 
 func UpdateUserHandler(cfg *config.Config, pool *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// проверка на метод
-		if r.Method == http.MethodPut {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		var user postgres.User
 
 		// декодирование сообщения
@@ -153,7 +147,7 @@ func UpdateUserHandler(cfg *config.Config, pool *pgxpool.Pool) http.HandlerFunc 
 
 		// Сообщение
 		subject := "Subject: Привет от Go!\r\n"
-		body := "Это тестовое письмо, отправленное из Go с использованием Gmail App Password.\r\n"
+		body := fmt.Sprintf("Здраствуйте, %s\r\n", user.Name)
 		msg := []byte(subject + "\r\n" + body)
 
 		// Аутентификация

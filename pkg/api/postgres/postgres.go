@@ -30,16 +30,15 @@ type Config struct {
 // New подключение к постгресу
 func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 	// создается подключение к постгресу
-	//conString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s&pool_max_conns=%d&pool_min_conns=%d",
-	//	config.Username,
-	//	config.Password,
-	//	config.Host,
-	//	config.Port,
-	//	config.Database,
-	//	config.MaxCon,
-	//	config.MinCon,
-	//)
-	conString := "postgres://root:1234@localhost:5432/postgres?sslmode=disable"
+	conString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?pool_max_conns=%d&pool_min_conns=%d&sslmode=disable",
+		config.Username,
+		config.Password,
+		config.Host,
+		config.Port,
+		config.Database,
+		config.MaxCon,
+		config.MinCon,
+	)
 
 	conn, err := pgxpool.New(ctx, conString)
 
