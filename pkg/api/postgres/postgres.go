@@ -8,6 +8,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"log"
 )
 
 type User struct {
@@ -65,4 +66,40 @@ func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("failed to migrate to database: %w", err)
 	}
 	return conn, nil
+}
+
+func UserExists(ctx context.Context, pool *pgxpool.Pool, email string) (bool, error) {
+	var exists bool
+	err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`, email).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+// SaveUsers сохранение пользователя
+func SaveUsers(ctx context.Context, pool *pgxpool.Pool, user User) error {
+	// пишем сохранение users
+	_, err := pool.Exec(ctx,
+		`INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
+		user.Name, user.Email,
+	)
+
+	if err != nil {
+		log.Printf("failed to save users: %v", err)
+	}
+	return err
+}
+
+// UpdateUser пишем обновление users
+func UpdateUser(ctx context.Context, pool *pgxpool.Pool, user User) error {
+	_, err := pool.Exec(ctx,
+		`UPDATE users SET name = $1, email = $2`,
+		user.Name, user.Email,
+	)
+
+	if err != nil {
+		log.Printf("failed to save users: %v", err)
+	}
+	return err
 }

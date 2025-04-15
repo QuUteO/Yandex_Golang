@@ -18,3 +18,12 @@ NOTIFICATION:
   SMTPPORT: "587"
   EMAIL: "quuteo86@gmail.com"
   PASSWORD: "sfmb oqfl uojk nwfw"
+
+KAFKA:
+  KAFKA_BROKERS:
+    - 127.0.0.1:9095
+    - 127.0.0.1:9096
+    - 127.0.0.1:9097
+  KAFKA_TOPIC:
+    - register
+    - update

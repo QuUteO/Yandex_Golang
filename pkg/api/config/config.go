@@ -10,6 +10,7 @@ type Config struct {
 	Postgres     postgres.Config `yaml:"POSTGRES" env:"POSTGRES"`
 	HTTPServer   `yaml:"HTTPSERVER"`
 	Notification `yaml:"NOTIFICATION"`
+	Kafka        KafkaConfig `yaml:"KAFKA"`
 }
 
 type HTTPServer struct {
@@ -23,6 +24,11 @@ type Notification struct {
 	Smtpport string `yaml:"SMTP_PORT" env-default:"587"`
 	Email    string `yaml:"EMAIL" env-default:"test@gmail.com"`
 	Password string `yaml:"PASSWORD" env-default:"test"`
+}
+
+type KafkaConfig struct {
+	KafkaBrokers []string `yaml:"KAFKA_BROKERS"`
+	KafkaTopic   []string `yaml:"KAFKA_TOPIC"`
 }
 
 func New() (*Config, error) {
