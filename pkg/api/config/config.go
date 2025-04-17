@@ -27,8 +27,8 @@ type Notification struct {
 }
 
 type KafkaConfig struct {
-	KafkaBrokers []string `yaml:"KAFKA_BROKERS"`
-	KafkaTopic   []string `yaml:"KAFKA_TOPIC"`
+	//KafkaBrokers []string `yaml:"KAFKA_BROKERS"`
+	KafkaTopic []string `yaml:"KAFKA_TOPIC"`
 }
 
 func New() (*Config, error) {

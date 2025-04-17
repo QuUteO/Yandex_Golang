@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// run consumer
-	err = kafka.StartConsumer(ctx, cfg, pool)
+	err = kafka.StartConsumer(ctx)
 	if err != nil {
 		logger.GetLoggerFromCtx(ctx).Info(ctx, "Error Consumer main.go", zap.Error(err))
 		os.Exit(1)
