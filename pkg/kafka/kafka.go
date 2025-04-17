@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/IBM/sarama"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"project/pkg/api/config"
 	"project/pkg/api/postgres"
 	"project/pkg/sendEmail"
+
+	"github.com/IBM/sarama"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // User структура для пользователя
@@ -123,7 +124,7 @@ func subscribe(ctx context.Context, topic string, consumerGroup sarama.ConsumerG
 	return nil
 }
 
-var brokers = []string{"127.0.0.1:9095", "127.0.0.1:9096", "127.0.0.1:9097"}
+var brokers = []string{"localhost:9092", "localhost:9093", "localhost:9094"}
 
 func StartConsumer(ctx context.Context) error {
 
@@ -140,5 +141,5 @@ func StartConsumer(ctx context.Context) error {
 		return err
 	}
 
-	return subscribe(ctx, "user", consumerGroup)
+	return subscribe(ctx, "register", consumerGroup)
 }

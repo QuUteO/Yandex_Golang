@@ -8,7 +8,7 @@ POSTGRES:
   POSTGRES_USER: root
   POSTGRES_PASSWORD: 1234
   POSTGRES_DB: postgres
-  POSTGRES_PORT: 5432
+  POSTGRES_PORT: 5440
 
   POSTGRES_MAX_CONN: 10
   POSTGRES_MIN_CON: 5
@@ -21,9 +21,9 @@ NOTIFICATION:
 
 KAFKA:
   brokers:
-    - "127.0.0.1:9095"
-    - "127.0.0.1:9096"
-    - "127.0.0.1:9097"
+    - "localhost:9092"
+    - "localhost:9093"
+    - "localhost:9094"
   topics:
     - "register"
     - "update"
