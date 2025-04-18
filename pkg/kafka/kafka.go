@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"project/pkg/api/config"
 	"project/pkg/api/postgres"
@@ -15,8 +16,10 @@ import (
 
 // User структура для пользователя
 type User struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	UserID uuid.UUID `yaml:"UserId"`
+	Name   string    `json:"Name"`
+	Email  string    `json:"Email"`
+	Token  string    `json:"Token"`
 }
 
 // Consumer структура для consumer
@@ -27,11 +30,13 @@ type Consumer struct {
 
 // Cleanup CleanUp функиция, которая работает при завершении работы программы
 func (c *Consumer) Cleanup(session sarama.ConsumerGroupSession) error {
+	log.Printf("Consumer Cleanup запустился")
 	return nil
 }
 
 // Setup функция, которая работает при запуске программы
 func (c *Consumer) Setup(sarama.ConsumerGroupSession) error {
+	fmt.Printf("Consumer Serup завершил свою работу")
 	return nil
 }
 
@@ -39,6 +44,12 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 	ctx := session.Context()
 
 	for message := range claim.Messages() {
+		log.Printf("Получено сообщение: %s ", string(message.Value))
+
+		if len(message.Topic) == 0 {
+			log.Printf("Пустой Json")
+		}
+
 		// Распаковка JSON-сообщения
 		var msg User                               // инициализируем структуру
 		err := json.Unmarshal(message.Value, &msg) // парсим сообщение и сохраняем в стурктуру
@@ -46,8 +57,6 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			log.Printf("Ошибка при распаковке сообщения: %s\n", err)
 			continue
 		}
-
-		log.Printf("Имя пользователя и email: %+v %+v\n", msg.Name, msg.Email)
 
 		switch message.Topic {
 		// если пользователь не существует, то сохраняем в PostgreSQL и отправляем сообщение на почту
@@ -83,6 +92,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			if err := postgres.UpdateUser(ctx, c.Pool, postgres.User{
 				Name:  msg.Name,
 				Email: msg.Email,
+				Id:    msg.UserID,
 			}); err != nil {
 				log.Printf("Ошибка обновления пользователя: %s\n", err)
 				continue
@@ -107,8 +117,11 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 }
 
 // чтение топиков
-func subscribe(ctx context.Context, topic string, consumerGroup sarama.ConsumerGroup) error {
-	consumer := Consumer{}
+func subscribe(ctx context.Context, topic string, consumerGroup sarama.ConsumerGroup, pool *pgxpool.Pool, cfg *config.Config) error {
+	consumer := Consumer{
+		Pool: pool,
+		Cfg:  cfg,
+	}
 
 	go func() {
 		for {
@@ -126,7 +139,7 @@ func subscribe(ctx context.Context, topic string, consumerGroup sarama.ConsumerG
 
 var brokers = []string{"localhost:9092", "localhost:9093", "localhost:9094"}
 
-func StartConsumer(ctx context.Context) error {
+func StartConsumer(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config) error {
 
 	saramaCfg := sarama.NewConfig()
 
@@ -134,12 +147,11 @@ func StartConsumer(ctx context.Context) error {
 	saramaCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
 
 	// создаем ConsumerGroup
-	consumerGroup, err := sarama.NewConsumerGroup(brokers, "analitic", saramaCfg)
-
+	consumerGroup, err := sarama.NewConsumerGroup(brokers, "test", saramaCfg)
 	if err != nil {
 		log.Printf("Ошибка при создании consumer group: %s\n", err)
 		return err
 	}
 
-	return subscribe(ctx, "register", consumerGroup)
+	return subscribe(ctx, "register", consumerGroup, pool, cfg)
 }

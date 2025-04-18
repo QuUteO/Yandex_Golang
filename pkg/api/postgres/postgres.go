@@ -7,14 +7,15 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 )
 
 type User struct {
-	Id    int    `yaml:"Id"`
-	Email string `yaml:"Email"`
-	Name  string `yaml:"name"`
+	Id    uuid.UUID `yaml:"Id"`
+	Email string    `yaml:"Email"`
+	Name  string    `yaml:"Name"`
 }
 
 type Config struct {
@@ -69,6 +70,9 @@ func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 }
 
 func UserExists(ctx context.Context, pool *pgxpool.Pool, email string) (bool, error) {
+	if pool == nil {
+		return false, fmt.Errorf("connection pool is nil")
+	}
 	var exists bool
 	err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`, email).Scan(&exists)
 	if err != nil {
@@ -79,10 +83,13 @@ func UserExists(ctx context.Context, pool *pgxpool.Pool, email string) (bool, er
 
 // SaveUsers сохранение пользователя
 func SaveUsers(ctx context.Context, pool *pgxpool.Pool, user User) error {
-	// пишем сохранение users
+	if pool == nil {
+		return fmt.Errorf("connection pool is nil")
+	}
+	// сохраняем пользователя с ID
 	_, err := pool.Exec(ctx,
-		`INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING`,
-		user.Name, user.Email,
+		`INSERT INTO users (id, name, email) VALUES ($1, $2, $3) ON CONFLICT (email) DO NOTHING`,
+		user.Id, user.Name, user.Email,
 	)
 
 	if err != nil {
@@ -93,13 +100,19 @@ func SaveUsers(ctx context.Context, pool *pgxpool.Pool, user User) error {
 
 // UpdateUser пишем обновление users
 func UpdateUser(ctx context.Context, pool *pgxpool.Pool, user User) error {
-	_, err := pool.Exec(ctx,
-		`UPDATE users SET name = $1, email = $2`,
+	if pool == nil {
+		return fmt.Errorf("connection pool is nil")
+	}
+	res, err := pool.Exec(ctx,
+		`UPDATE users SET name = $1 WHERE email = $2`,
 		user.Name, user.Email,
 	)
 
 	if err != nil {
 		log.Printf("failed to save users: %v", err)
 	}
+
+	rows := res.RowsAffected()
+	log.Printf("Обновлено строк: %d", rows)
 	return err
 }

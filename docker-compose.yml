@@ -1,9 +1,9 @@
-ervices:
+services:
   kafka-ui:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
-      - "9020:8080"
+      - "9080:8080"
     environment:
       AUTH_TYPE: "DISABLED"
       KAFKA_CLUSTERS_0_NAME: local
@@ -13,8 +13,6 @@ ervices:
       - kafka1
       - kafka2
       - kafka3
-    networks:
-      - sso-network
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
@@ -23,8 +21,7 @@ ervices:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
-    networks:
-      - sso-network
+
 
   kafka1:
     container_name: kafka1
@@ -41,6 +38,7 @@ ervices:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
 
+
   kafka2:
     image: confluentinc/cp-kafka:7.6.0
     container_name: kafka2
@@ -55,6 +53,7 @@ ervices:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+
 
   kafka3:
     image: confluentinc/cp-kafka:7.6.0
