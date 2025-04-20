@@ -45,7 +45,7 @@ func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 	conn, err := pgxpool.New(ctx, conString)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
+		return nil, fmt.Errorf("Ошибка подключения к Postgres: %w", err)
 	}
 
 	// Применям миграции

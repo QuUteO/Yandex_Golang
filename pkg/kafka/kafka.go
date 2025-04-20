@@ -28,23 +28,27 @@ type Consumer struct {
 	Pool *pgxpool.Pool  // пул подключения к базе PostgreSQL
 }
 
-// Cleanup CleanUp функиция, которая работает при завершении работы программы
-func (c *Consumer) Cleanup(session sarama.ConsumerGroupSession) error {
-	log.Printf("Consumer Cleanup запустился")
+// Setup функция, которая работает при запуске программы
+func (c *Consumer) Setup(sess sarama.ConsumerGroupSession) error {
+	log.Println("[Setup] Starting session... Assigned partitions:")
+	for topic, partitions := range sess.Claims() {
+		log.Printf("  Topic: %s | Partitions: %v\n", topic, partitions)
+	}
 	return nil
 }
 
-// Setup функция, которая работает при запуске программы
-func (c *Consumer) Setup(sarama.ConsumerGroupSession) error {
-	fmt.Printf("Consumer Serup завершил свою работу")
+// Cleanup CleanUp функиция, которая работает при завершении работы программы
+func (c *Consumer) Cleanup(sess sarama.ConsumerGroupSession) error {
+	log.Println("[Cleanup] Cleaning up session...")
 	return nil
 }
 
 func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	log.Printf("[ConsumeClaim] Started for topic %s, partition %d\n", claim.Topic(), claim.Partition())
 	ctx := session.Context()
 
 	for message := range claim.Messages() {
-		log.Printf("Получено сообщение: %s ", string(message.Value))
+		log.Printf("[ConsumerClaim] Получено сообщение: %s ", string(message.Value))
 
 		if len(message.Topic) == 0 {
 			log.Printf("Пустой Json")
@@ -53,6 +57,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 		// Распаковка JSON-сообщения
 		var msg User                               // инициализируем структуру
 		err := json.Unmarshal(message.Value, &msg) // парсим сообщение и сохраняем в стурктуру
+		log.Printf("Полученные данные %s", string(message.Value))
 		if err != nil {
 			log.Printf("Ошибка при распаковке сообщения: %s\n", err)
 			continue
@@ -61,6 +66,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 		switch message.Topic {
 		// если пользователь не существует, то сохраняем в PostgreSQL и отправляем сообщение на почту
 		case "register":
+			log.Printf("Проверка в базе данных...")
 			exist, err := postgres.UserExists(ctx, c.Pool, msg.Email)
 			if err != nil {
 				log.Printf("Ошибка при проверке существования пользователя: %s\n", err)
@@ -69,6 +75,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			if exist {
 				log.Printf("Пользователь уже был сохранен %s\n", msg.Email)
 			} else {
+				log.Printf("Попытка сохранения пользователя...")
 				if err := postgres.SaveUsers(ctx, c.Pool, postgres.User{
 					Name:  msg.Name,
 					Email: msg.Email,
@@ -76,6 +83,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					log.Printf("Ошибка сохранения пользователя: %s\n", err)
 					continue
 				}
+				log.Printf("Попытка отправки сообщения")
 				if err := sendEmail.SendEmail(
 					msg.Email,
 					msg.Name,
@@ -89,14 +97,16 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			}
 		// обновляем данные в PostgreSQL и отправляем сообщение на почту
 		case "update":
+			log.Printf("Попытка обновления данных пользователя")
 			if err := postgres.UpdateUser(ctx, c.Pool, postgres.User{
 				Name:  msg.Name,
 				Email: msg.Email,
 				Id:    msg.UserID,
 			}); err != nil {
-				log.Printf("Ошибка обновления пользователя: %s\n", err)
+				log.Printf("Ошибка обновления данныхя пользователя: %s\n", err)
 				continue
 			}
+			log.Printf("Попытка отправки сообщения")
 			if err := sendEmail.SendEmail(
 				msg.Email,
 				msg.Name,
