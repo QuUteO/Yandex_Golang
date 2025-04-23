@@ -27,8 +27,8 @@ type Notification struct {
 }
 
 type KafkaConfig struct {
-	KafkaBrokers []string `yaml:"KAFKA_BROKERS"`
-	KafkaTopic   []string `yaml:"KAFKA_TOPIC"`
+	Brokers []string `yaml:"brokers" env-default:"kafka1:19092,kafka2:19093,kafka3:19094"`
+	Topics  []string `yaml:"topics"`
 }
 
 func New() (*Config, error) {

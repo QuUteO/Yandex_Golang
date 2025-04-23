@@ -4,7 +4,7 @@ HTTP_SERVER:
   IDLE_TIMEOUT: 60s #время на соединение с пользователем
 
 POSTGRES:
-  POSTGRES_HOST: localhost
+  POSTGRES_HOST: postgres
   POSTGRES_USER: root
   POSTGRES_PASSWORD: 1234
   POSTGRES_DB: postgres
@@ -21,9 +21,9 @@ NOTIFICATION:
 
 KAFKA:
   brokers:
-    - "localhost:9092"
-    - "localhost:9093"
-    - "localhost:9094"
+    - "kafka1:19092"
+    - "kafka2:19093"
+    - "kafka3:19094"
   topics:
     - "register"
-    - "update"
+    - "joinToCanvas"

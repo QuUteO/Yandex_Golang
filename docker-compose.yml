@@ -89,5 +89,22 @@ services:
         timeout: 5s
         retries: 5
 
+  notification_service:
+    image: test_notification:latest
+    container_name: notification_service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka1:
+        condition: service_started
+      kafka2:
+        condition: service_started
+      kafka3:
+        condition: service_started
+    volumes:
+      - ./config/config.yaml:/app/config/config.yaml
+
 volumes:
   postgres_data:
+
+

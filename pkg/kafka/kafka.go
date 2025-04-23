@@ -16,10 +16,18 @@ import (
 
 // User структура для пользователя
 type User struct {
-	UserID uuid.UUID `yaml:"UserId"`
+	UserID uuid.UUID `json:"UserId"`
 	Name   string    `json:"Name"`
 	Email  string    `json:"Email"`
 	Token  string    `json:"Token"`
+}
+type AddToWhiteListMessage struct {
+	CanvasID   string
+	CanvasName string // для красоты
+	OwnerID    uuid.UUID
+	UserId     uuid.UUID // id пользователя, которого добавляют
+	Email      string
+	Name       string
 }
 
 // Consumer структура для consumer
@@ -54,20 +62,19 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			log.Printf("Пустой Json")
 		}
 
-		// Распаковка JSON-сообщения
-		var msg User                               // инициализируем структуру
-		err := json.Unmarshal(message.Value, &msg) // парсим сообщение и сохраняем в стурктуру
-		log.Printf("Полученные данные %s", string(message.Value))
-		if err != nil {
-			log.Printf("Ошибка при распаковке сообщения: %s\n", err)
-			continue
-		}
-
 		switch message.Topic {
 		// если пользователь не существует, то сохраняем в PostgreSQL и отправляем сообщение на почту
 		case "register":
+			// Распаковка JSON-сообщения
+			var msg User                               // инициализируем структуру
+			err := json.Unmarshal(message.Value, &msg) // парсим сообщение и сохраняем в стурктуру
+			log.Printf("Полученные данные %s", string(message.Value))
+			if err != nil {
+				log.Printf("Ошибка при распаковке сообщения: %s\n", err)
+				continue
+			}
 			log.Printf("Проверка в базе данных...")
-			exist, err := postgres.UserExists(ctx, c.Pool, msg.Email)
+			exist, err := postgres.UserExistsByID(ctx, c.Pool, msg.UserID)
 			if err != nil {
 				log.Printf("Ошибка при проверке существования пользователя: %s\n", err)
 				continue
@@ -77,6 +84,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			} else {
 				log.Printf("Попытка сохранения пользователя...")
 				if err := postgres.SaveUsers(ctx, c.Pool, postgres.User{
+					Id:    msg.UserID,
 					Name:  msg.Name,
 					Email: msg.Email,
 				}); err != nil {
@@ -85,6 +93,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				}
 				log.Printf("Попытка отправки сообщения")
 				if err := sendEmail.SendEmail(
+					msg.Token,
 					msg.Email,
 					msg.Name,
 					c.Cfg.Email,
@@ -95,28 +104,37 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 					log.Printf("Ошибка отправки сообщения на email: %s\n", err)
 				}
 			}
-		// обновляем данные в PostgreSQL и отправляем сообщение на почту
-		case "update":
-			log.Printf("Попытка обновления данных пользователя")
-			if err := postgres.UpdateUser(ctx, c.Pool, postgres.User{
-				Name:  msg.Name,
-				Email: msg.Email,
-				Id:    msg.UserID,
-			}); err != nil {
-				log.Printf("Ошибка обновления данныхя пользователя: %s\n", err)
+		case "joinToCanvas":
+			var msg AddToWhiteListMessage
+			log.Printf("Проверка в базе данных... для OwnerID: %s", msg.OwnerID)
+			_, err := postgres.UserExistsByID(ctx, c.Pool, msg.OwnerID)
+			if err != nil {
+				log.Printf("Ошибка при проверке существования пользователя: %s\n", err)
 				continue
 			}
-			log.Printf("Попытка отправки сообщения")
-			if err := sendEmail.SendEmail(
+			// Получаем email и имя владельца канваса
+			email, name, err := postgres.GetUserDetailsByID(ctx, c.Pool, msg.UserId)
+			if err != nil {
+				log.Printf("Ошибка при получении данных пользователя: %s\n", err)
+				continue
+			}
+			// Присваиваем email и имя в структуру сообщения
+			msg.Email = email
+			msg.Name = name
+
+			if err := sendEmail.SendEmailToJoin(
+				msg.CanvasID,
 				msg.Email,
 				msg.Name,
 				c.Cfg.Email,
 				c.Cfg.Password,
 				c.Cfg.Smtphost,
 				c.Cfg.Smtpport,
+				msg.OwnerID,
 			); err != nil {
 				log.Printf("Ошибка отправки сообщения на email: %s\n", err)
 			}
+
 		}
 
 		// Отметка о том, что сообщение было успешно обработано
@@ -147,8 +165,6 @@ func subscribe(ctx context.Context, topic string, consumerGroup sarama.ConsumerG
 	return nil
 }
 
-var brokers = []string{"localhost:9092", "localhost:9093", "localhost:9094"}
-
 func StartConsumer(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config) error {
 
 	saramaCfg := sarama.NewConfig()
@@ -157,7 +173,7 @@ func StartConsumer(ctx context.Context, pool *pgxpool.Pool, cfg *config.Config) 
 	saramaCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
 
 	// создаем ConsumerGroup
-	consumerGroup, err := sarama.NewConsumerGroup(brokers, "test", saramaCfg)
+	consumerGroup, err := sarama.NewConsumerGroup(cfg.Kafka.Brokers, "test", saramaCfg)
 	if err != nil {
 		log.Printf("Ошибка при создании consumer group: %s\n", err)
 		return err

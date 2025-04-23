@@ -69,12 +69,12 @@ func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 	return conn, nil
 }
 
-func UserExists(ctx context.Context, pool *pgxpool.Pool, email string) (bool, error) {
+func UserExistsByID(ctx context.Context, pool *pgxpool.Pool, id uuid.UUID) (bool, error) {
 	if pool == nil {
 		return false, fmt.Errorf("connection pool is nil")
 	}
 	var exists bool
-	err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)`, email).Scan(&exists)
+	err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, id).Scan(&exists)
 	if err != nil {
 		return false, err
 	}
@@ -98,21 +98,14 @@ func SaveUsers(ctx context.Context, pool *pgxpool.Pool, user User) error {
 	return err
 }
 
-// UpdateUser пишем обновление users
-func UpdateUser(ctx context.Context, pool *pgxpool.Pool, user User) error {
-	if pool == nil {
-		return fmt.Errorf("connection pool is nil")
-	}
-	res, err := pool.Exec(ctx,
-		`UPDATE users SET name = $1 WHERE email = $2`,
-		user.Name, user.Email,
-	)
+// GetUserDetailsByID В данном случае мы можем добавить функцию для получения email и name по OwnerID
+func GetUserDetailsByID(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID) (string, string, error) {
+	var email, name string
 
+	// SQL-запрос для получения данных пользователя
+	err := pool.QueryRow(ctx, `SELECT email, name FROM users WHERE id = $1`, userID).Scan(&email, &name)
 	if err != nil {
-		log.Printf("failed to save users: %v", err)
+		return "", "", fmt.Errorf("ошибка при получении данных пользователя: %w", err)
 	}
-
-	rows := res.RowsAffected()
-	log.Printf("Обновлено строк: %d", rows)
-	return err
+	return email, name, nil
 }
